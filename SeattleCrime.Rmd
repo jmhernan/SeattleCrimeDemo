@@ -1,0 +1,97 @@
+---
+title: "SeattleCrime"
+author: "Jose M Hernandez"
+date: "October 15, 2015"
+output: html_document
+---
+
+```{r, echo=F, warning=F, message=F, include=F}
+library(leaflet)
+library(maps)
+library(rgdal)
+library(dplyr)
+library(ggplot2)
+library(rgeos)
+library(maptools)
+library(RgoogleMaps)
+library(ggmap)
+library(jsonlite)
+library(curl)
+```
+
+#Loading the data from Seattle Open Data (Socrata)
+
+Use curl and jsonlite and downlod as a Json file format limit to the most rescent 2,000 incidents 
+```{r, warning=F, message=F,}
+crime <- fromJSON("https://data.seattle.gov/resource/pu5n-trf4.json?event_clearance_group=ASSAULTS&$limit=2000")
+
+schools <- fromJSON("https://data.seattle.gov/resource/ywms-iep2.json")
+
+crime$latitude<-as.numeric(crime$latitude)
+crime$longitude<-as.numeric(crime$longitude)
+schools$shape$latitude<-as.numeric(schools$shape$latitude)
+schools$shape$longitude<-as.numeric(schools$shape$longitude)
+```
+
+##Static version if you're into that ;) 
+
+Locate Seattle using this magical geocode function use open street maps and plot crime points. 
+
+```{r,warning=F, message=F}
+CenterOfMap <- geocode("Seattle,WA")
+
+sea_town <- get_map(c(lon=CenterOfMap$lon, lat=CenterOfMap$lat),zoom = 12, source = "osm")
+sea_town <- ggmap(sea_town)
+sea_town <- sea_town + theme(axis.text.x = element_blank(),
+                             axis.text.y = element_blank(),
+                             axis.ticks = element_blank())
+sea_town
+```
+Add data 
+```{r, warning=F, message=F}
+sea_town <- sea_town +
+            geom_point( data=crime, aes(x=longitude, y=latitude), 
+                        color="red",alpha=0.3,na.rm = T)
+
+sea_town <- sea_town + geom_point( data=schools, aes(x=shape$longitude, y=shape$latitude),
+                                   color="blue",shape=18, size=4,alpha=.7,na.rm = T)
+sea_town
+```
+
+All good, but this maps violent crime at all times, let's only look at crime that happens between 7am and 3pm
+
+```{r, warning=F, message=F}
+str(crime$at_scene_time)
+crime$time <- substr(crime$at_scene_time, 12,13)
+crime$time <-as.numeric(crime$time)
+crime_day <-subset(crime, time>=07 & time<=15)
+```
+
+I know that theres a more efficient way using the time stamp and as.Date() subsets.
+
+```{r, warning=F, message=F}
+sea_town <- sea_town + geom_point( data=crime_day, aes(x=longitude, y=latitude),
+                                   color="purple",alpha=0.5, size=3, na.rm = T)
+sea_town
+```
+
+###Let's plot an inteactive map using leaflet 
+
+```{r,warning=F, message=F,fig.width=10, fig.height=6}
+sea_crime <-leaflet() %>%
+            addProviderTiles("CartoDB.Positron") %>%
+            addCircles(data = crime_day, lng = ~longitude, 
+             lat = ~latitude, weight = 2, radius = 50, color = "#ca0020",
+             popup = ~initial_type_description, fillOpacity = 0.5) %>%
+  
+            addCircles(data = schools, lng = ~shape$longitude, lat = ~shape$latitude, 
+             weight = 3, radius = 100, color = "#7b3294",
+             popup = ~name) %>%
+            addLegend("bottomright", colors= c("#ca0020","#7b3294"), 
+            labels=c("Assault","School"), title="School Time Crime")
+
+
+sea_crime
+```
+
+###The End.  
