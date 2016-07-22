@@ -1,9 +1,6 @@
----
-title: "SeattleCrime"
-author: "Jose M Hernandez"
-date: "October 15, 2015"
-output: html_document
----
+#SeattleCrime
+#Jose M Hernandez
+#October 15, 2015
 
 ```{r, echo=F, warning=F, message=F, include=F}
 library(leaflet)
