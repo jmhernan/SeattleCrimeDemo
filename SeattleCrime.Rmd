@@ -18,7 +18,7 @@ library(curl)
 
 #Loading the data from Seattle Open Data (Socrata)
 
-Use curl and jsonlite and downlod as a Json file format limit to the most rescent 2,000 incidents 
+Use curl and jsonlite and downlod as a Json file format limit to the most recent 2,000 incidents 
 ```{r, warning=F, message=F,}
 crime <- fromJSON("https://data.seattle.gov/resource/pu5n-trf4.json?event_clearance_group=ASSAULTS&$limit=2000")
 
